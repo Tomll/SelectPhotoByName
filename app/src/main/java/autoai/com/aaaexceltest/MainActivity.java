@@ -1,7 +1,9 @@
 package autoai.com.aaaexceltest;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.FontRequest;
@@ -9,6 +11,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,21 +35,23 @@ public class MainActivity extends AppCompatActivity {
     public static final String headPathNew = "/storage/emulated/0/360AAA/headNew/";//头像筛选后复制到的新目录
     ArrayList<User> userList = new ArrayList<>();
     File[] fs;//原始头像数据--文件数组
+    FrameLayout progressFrameLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        progressFrameLayout = findViewById(R.id.progressFrameLayout);
 
         //检查版本是否大于M
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 169);
             } else {//权限已经申请
-                ergodicFile();//先遍历原始头像目录
-                readFileByLines(nameFile);//读出员工信息，存入User集合
-                selectHeadImage();//筛选并复制头像到新目录
-
+//                ergodicFile();//先遍历原始头像目录
+//                readFileByLines(nameFile);//读出员工信息，存入User集合
+//                selectHeadImage();//筛选并复制头像到新目录
+                new MyTask(MainActivity.this).execute();//使用异步任务执行 上述操作
             }
         }
 
@@ -194,4 +203,34 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    //异步任务类
+    class MyTask extends AsyncTask<Void, Void, Boolean> {
+
+        Context context;
+        public MyTask(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressFrameLayout.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            ergodicFile();//先遍历原始头像目录
+            readFileByLines(nameFile);//读出员工信息，存入User集合
+            selectHeadImage();//筛选并复制头像到新目录
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+            progressFrameLayout.setVisibility(View.GONE);
+            Toast.makeText(context, "处理完成",Toast.LENGTH_LONG).show();
+        }
+    }
 }
